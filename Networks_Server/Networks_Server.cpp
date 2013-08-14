@@ -143,18 +143,27 @@ int main()
 			counter = 0;
 		}
          
-        //now reply the client with the same data
-        /*if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+        //now reply to the client
+	send.sin_addr.s_addr = si_other.sin_addr.s_addr;
+
+	/*
+	// Force data
+        memset(buf,'\0', DEFAULT_BUFLEN);
+	strcpy(buf, "f(3.3,0.00,0.06");
+
+	if (sendto(out, buf, sizeof(buf), 0, (struct sockaddr*) &send, slen) == SOCKET_ERROR)
+	{
+            printf("sendto() failed with error code : %d" , WSAGetLastError());
+	   exit(EXIT_FAILURE);
+	}
+	*/
+	
+	// Position data
+	if (sendto(out, buf, recv_len, 0, (struct sockaddr*) &send, slen) == SOCKET_ERROR)
         {
             printf("sendto() failed with error code : %d" , WSAGetLastError());
             exit(EXIT_FAILURE);
-        }*/
-		send.sin_addr.s_addr = si_other.sin_addr.s_addr;
-		if (sendto(out, buf, recv_len, 0, (struct sockaddr*) &send, slen) == SOCKET_ERROR)
-        {
-            printf("sendto() failed with error code : %d" , WSAGetLastError());
-            exit(EXIT_FAILURE);
-        }
+	}
     }
  
     closesocket(s);
