@@ -14,7 +14,8 @@
 #endif
 
 #define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT 27015
+#define DEFAULT_PORT 1122 //27015
+#define DEFAULT_OUT 1121
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -60,11 +61,12 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 // This is our normal entry point
 int main()
 {
-    SOCKET s;
-    struct sockaddr_in server, si_other;
+    SOCKET s,out;
+    struct sockaddr_in server, si_other, send;
     int slen , recv_len;
     char buf[DEFAULT_BUFLEN];
     WSADATA wsa;
+	int counter = 0;
  
     slen = sizeof(si_other) ;
      
@@ -83,11 +85,24 @@ int main()
         printf("Could not create socket : %d" , WSAGetLastError());
     }
     printf("Socket created.\n");
-     
+
+	//Create a socket
+    if((out = socket(AF_INET , SOCK_DGRAM , 0 )) == INVALID_SOCKET)
+    {
+        printf("Could not create socket : %d" , WSAGetLastError());
+    }
+    printf("Socket created.\n");
+
+	send.sin_family = AF_INET;
+	send.sin_addr.s_addr = htonl (INADDR_ANY);
+	send.sin_port = htons( DEFAULT_OUT );
+
     //Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_addr.s_addr = htonl (INADDR_ANY);
     server.sin_port = htons( DEFAULT_PORT );
+
+
      
     //Bind
     if( bind(s ,(struct sockaddr *)&server , sizeof(server)) == SOCKET_ERROR)
@@ -95,6 +110,13 @@ int main()
         printf("Bind failed with error code : %d" , WSAGetLastError());
         exit(EXIT_FAILURE);
     }
+
+	if( bind(out, (struct sockaddr *)&send, sizeof(send)) == SOCKET_ERROR)
+	{
+		printf("Bind to output socket failed with error code : %d", WSAGetLastError());
+		exit(EXIT_FAILURE);
+	}
+
     puts("Bind done");
  
     //keep listening for data
@@ -114,11 +136,21 @@ int main()
         }
          
         //print details of the client/peer and the data received
-        printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-        printf("Data: %s\n" , buf);
+		//if(counter++ > 5000)
+		{
+			printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+			printf("Data: %s\n" , buf);
+			counter = 0;
+		}
          
         //now reply the client with the same data
-        if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+        /*if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+        {
+            printf("sendto() failed with error code : %d" , WSAGetLastError());
+            exit(EXIT_FAILURE);
+        }*/
+		send.sin_addr.s_addr = si_other.sin_addr.s_addr;
+		if (sendto(out, buf, recv_len, 0, (struct sockaddr*) &send, slen) == SOCKET_ERROR)
         {
             printf("sendto() failed with error code : %d" , WSAGetLastError());
             exit(EXIT_FAILURE);
